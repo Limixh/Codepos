@@ -114,7 +114,7 @@ function createWindow(
     resizable: false,
     show: false,
     skipTaskbar: true,
-    title: "T3 Code Snapshot Animation",
+    title: "Codepos Snapshot Animation",
     transparent: true,
     webPreferences: {
       backgroundThrottling: false,

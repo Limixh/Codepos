@@ -525,7 +525,7 @@ export function ThemeImportDialog({
                   <div className="min-w-0">
                     <p className="text-sm font-medium">Theme file</p>
                     <p className="truncate text-xs text-muted-foreground">
-                      {fileName ?? "Drop T3 Code or VS Code .json files"}
+                      {fileName ?? "Drop Codepos or VS Code .json theme files"}
                     </p>
                   </div>
                   {chooseButton()}

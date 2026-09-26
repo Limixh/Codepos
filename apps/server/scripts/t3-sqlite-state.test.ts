@@ -75,6 +75,20 @@ it.layer(NodeServices.layer)("t3-sqlite-state", (it) => {
     }),
   );
 
+  it.effect("refuses to mutate the Codepos home", () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const baseDir = yield* fs.makeTempDirectoryScoped({ prefix: "codepos-sqlite-state-home-" });
+      yield* createFixtureDatabase(baseDir);
+
+      const error = yield* runSqliteState(
+        { operation: "exec", baseDir, sql: "DELETE FROM fixtures" },
+        { codeposHome: baseDir },
+      ).pipe(Effect.flip);
+      assert.equal(error._tag, "SqliteStateSharedHomeMutationError");
+    }),
+  );
+
   it.effect.skipIf(!symlinksSupported)(
     "backs up isolated state before writes and refuses the shared home",
     () =>

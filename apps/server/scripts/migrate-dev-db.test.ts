@@ -192,4 +192,19 @@ it.layer(NodeServices.layer)("migrate-dev-db", (it) => {
       assert.equal(error._tag, "MigrateDevDbSharedHomeError");
     }),
   );
+
+  it.effect("refuses to rebuild the Codepos home", () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const sourceDir = yield* fs.makeTempDirectoryScoped({ prefix: "migrate-dev-db-source-" });
+      const codeposHome = yield* fs.makeTempDirectoryScoped({ prefix: "migrate-dev-db-codepos-" });
+      const source = yield* createFixtureSource(sourceDir);
+
+      const error = yield* runMigrateDevDb(
+        { baseDir: codeposHome, source, projects: 5, threadsPerProject: 10 },
+        { sharedHome: sourceDir, codeposHome },
+      ).pipe(Effect.flip);
+      assert.equal(error._tag, "MigrateDevDbSharedHomeError");
+    }),
+  );
 });

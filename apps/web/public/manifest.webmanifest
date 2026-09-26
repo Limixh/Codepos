@@ -1,10 +1,12 @@
 {
+  "name": "Codepos",
+  "short_name": "Codepos",
   "id": "/",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#161616",
-  "theme_color": "#161616",
+  "background_color": "#10151c",
+  "theme_color": "#10151c",
   "icons": [
     {
       "src": "/favicon-32x32.png",

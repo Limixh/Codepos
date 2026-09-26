@@ -13,6 +13,7 @@ import { afterEach, vi } from "vite-plus/test";
 import packageJson from "../../package.json" with { type: "json" };
 import * as BootService from "../cloud/bootService.ts";
 import {
+  CodeposServiceReleaseFeedUnavailableError,
   formatServiceStatus,
   offerServiceDuringOnboarding,
   reconcileService,
@@ -26,18 +27,18 @@ const status = {
   supported: true,
   installed: true,
   current: true,
-  unitPath: "/home/me/.config/systemd/user/t3code.service",
-  logPath: "/home/me/.t3/userdata/logs/boot-service.log",
+  unitPath: "/home/me/.config/systemd/user/codepos.service",
+  logPath: "/home/me/.codepos/userdata/logs/boot-service.log",
 } as const;
 
 it("reports the installed service version and host paths", () => {
   assert.equal(
     formatServiceStatus(status, "0.0.29"),
     [
-      "T3 Code service",
+      "Codepos service",
       "  Status: installed · t3@0.0.29",
-      "  Unit: /home/me/.config/systemd/user/t3code.service",
-      "  Logs: /home/me/.t3/userdata/logs/boot-service.log",
+      "  Unit: /home/me/.config/systemd/user/codepos.service",
+      "  Logs: /home/me/.codepos/userdata/logs/boot-service.log",
     ].join("\n"),
   );
 });
@@ -137,7 +138,13 @@ it.layer(Layer.mergeAll(NodeServices.layer, NetService.layer))("service commands
         baseDir,
       ]).pipe(
         Effect.provideService(HostProcessEnvironment, {}),
-        Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: {} }))),
+        Effect.provide(
+          ConfigProvider.layer(
+            ConfigProvider.fromEnv({
+              env: { CODEPOS_RELEASE_BASE_URL: "https://releases.codepos.test" },
+            }),
+          ),
+        ),
       );
 
       expect(restarts).toEqual([true]);
@@ -191,7 +198,13 @@ it.layer(Layer.mergeAll(NodeServices.layer, NetService.layer))("service commands
         "--allow-downgrade",
       ]).pipe(
         Effect.provideService(HostProcessEnvironment, {}),
-        Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: {} }))),
+        Effect.provide(
+          ConfigProvider.layer(
+            ConfigProvider.fromEnv({
+              env: { CODEPOS_RELEASE_BASE_URL: "https://releases.codepos.test" },
+            }),
+          ),
+        ),
       );
 
       expect(installOptions).toEqual([{ allowDowngrade: true }]);
@@ -222,10 +235,35 @@ it.effect.each([
 
     const result = yield* reconcileService().pipe(
       Effect.provideService(BootService.BootService, service),
+      Effect.provide(
+        ConfigProvider.layer(
+          ConfigProvider.fromEnv({
+            env: { CODEPOS_RELEASE_BASE_URL: "https://releases.codepos.test" },
+          }),
+        ),
+      ),
     );
 
     expect(result.changed).toBe(true);
     expect(installOptions).toEqual([undefined]);
+  }),
+);
+
+it.effect("refuses to install a Codepos service without a Codepos release feed", () =>
+  Effect.gen(function* () {
+    const { service, installOptions } = makeTestService({
+      ...status,
+      installed: false,
+      current: false,
+    });
+    const error = yield* reconcileService().pipe(
+      Effect.provideService(BootService.BootService, service),
+      Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: {} }))),
+      Effect.flip,
+    );
+    expect(error).toBeInstanceOf(CodeposServiceReleaseFeedUnavailableError);
+    expect(error.message).toContain("CODEPOS_RELEASE_BASE_URL");
+    expect(installOptions).toEqual([]);
   }),
 );
 

@@ -56,6 +56,7 @@ it("stages relay-shaped rows against the seeded threads", () => {
   assert.isNotNull(activity);
   if (!activity) return;
 
+  assert.strictEqual(activity.title, "Codepos");
   assert.strictEqual(activity.activeCount, 3);
   assert.deepStrictEqual(
     activity.activities.map((row) => [row.threadId, row.status, row.projectTitle, row.updatedAt]),

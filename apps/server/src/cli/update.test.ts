@@ -1,9 +1,12 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
-import { assert, it } from "@effect/vitest";
+import { assert, expect, it } from "@effect/vitest";
+import * as NetService from "@t3tools/shared/Net";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
+import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
 import * as Path from "effect/Path";
+import { Command } from "effect/unstable/cli";
 import {
   HostProcessEnvironment,
   HostProcessInvokedAs,
@@ -11,7 +14,18 @@ import {
   HostProcessWorkingDirectory,
 } from "@t3tools/shared/hostProcess";
 
-import { repointLauncher, resolveLauncherPath } from "./update.ts";
+import { repointLauncher, resolveLauncherPath, updateCommand } from "./update.ts";
+
+it.effect("does not update the Codepos CLI from the T3 release feed", () =>
+  Effect.gen(function* () {
+    const error = yield* Command.runWith(updateCommand, { version: "0.0.0" })([]).pipe(
+      Effect.flip,
+      Effect.provide(Layer.mergeAll(NodeServices.layer, NetService.layer)),
+    );
+    expect(error.message).toContain("Codepos CLI updates are unavailable");
+    expect(error.message).toContain("release index still points to T3");
+  }),
+);
 
 it.layer(NodeServices.layer)("t3 update launcher", (it) => {
   it.effect("repoints a symlink that lives in a runtime versions tree", () =>

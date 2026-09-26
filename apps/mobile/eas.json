@@ -29,7 +29,6 @@
       "corepack": true,
       "env": {
         "APP_VARIANT": "preview",
-        "MOBILE_VERSION_POLICY": "fingerprint",
         "NODE_OPTIONS": "--max-old-space-size=4096"
       },
       "channel": "preview",
@@ -43,10 +42,7 @@
     "v2-preview": {
       "extends": "production",
       "distribution": "store",
-      "channel": "v2-preview",
-      "env": {
-        "T3CODE_MOBILE_UPDATES_ENABLED": "0"
-      }
+      "channel": "v2-preview"
     },
     "production": {
       "corepack": true,
@@ -68,9 +64,6 @@
       }
     },
     "production": {
-      "ios": {
-        "ascAppId": "6787819824"
-      },
       "android": {
         "track": "internal"
       }

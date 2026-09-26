@@ -251,31 +251,42 @@ const versionArgument = Argument.String("version").pipe(
   Argument.optional,
 );
 
+// The release index helper still targets pingdotgg/t3code. Keep self-update
+// disabled until the Codepos project has its own index and archive feed.
+const codeposCliReleaseFeedConfigured: boolean = false;
+
 export const updateCommand = Command.make("update", {
   ...updateFlags,
   version: versionArgument,
 }).pipe(
   Command.withDescription(
-    "Download a newer t3 and switch this machine to it, including the background service when one is installed.",
+    "Update the Codepos CLI and background service from the configured Codepos release feed.",
   ),
   Command.withHandler((flags) =>
-    Effect.gen(function* () {
-      const logLevel = yield* GlobalFlag.LogLevel;
-      const config = yield* resolveCliAuthConfig(flags, logLevel);
-      return yield* runUpdate({
-        baseDir: config.baseDir,
-        logsDir: config.logsDir,
-        serverRuntimeStatePath: config.serverRuntimeStatePath,
-        channel: Option.getOrUndefined(flags.channel),
-        requestedVersion: Option.getOrUndefined(flags.version),
-        allowDowngrade: flags.allowDowngrade,
-        assumeYes: flags.yes,
-      }).pipe(
-        Effect.provide(
-          Layer.mergeAll(bootServiceLayer(config), ProcessRunner.layer, FetchHttpClient.layer),
+    codeposCliReleaseFeedConfigured
+      ? Effect.gen(function* () {
+          const logLevel = yield* GlobalFlag.LogLevel;
+          const config = yield* resolveCliAuthConfig(flags, logLevel);
+          return yield* runUpdate({
+            baseDir: config.baseDir,
+            logsDir: config.logsDir,
+            serverRuntimeStatePath: config.serverRuntimeStatePath,
+            channel: Option.getOrUndefined(flags.channel),
+            requestedVersion: Option.getOrUndefined(flags.version),
+            allowDowngrade: flags.allowDowngrade,
+            assumeYes: flags.yes,
+          }).pipe(
+            Effect.provide(
+              Layer.mergeAll(bootServiceLayer(config), ProcessRunner.layer, FetchHttpClient.layer),
+            ),
+          );
+        })
+      : Effect.fail(
+          new CliUpdateError({
+            reason:
+              "Codepos CLI updates are unavailable until the Codepos release index and archive feed are configured. This build's release index still points to T3.",
+          }),
         ),
-      );
-    }),
   ),
 );
 
@@ -309,7 +320,7 @@ const belongsToBootService = Effect.fn("cli.update.belongs_to_boot_service")(fun
   const runner = yield* ProcessRunner.ProcessRunner;
   if (platform === "linux") {
     const cgroup = yield* fs.readFileString(`/proc/${pid}/cgroup`).pipe(Effect.option);
-    return Option.isSome(cgroup) && cgroup.value.includes("/t3code.service");
+    return Option.isSome(cgroup) && cgroup.value.includes("/codepos.service");
   }
   if (platform === "darwin") {
     // The service server's parent is the launcher process.
@@ -459,8 +470,8 @@ const runUpdate = Effect.fn("cli.update.run")(function* (input: {
       : executableCurrent
         ? `Updating the background service ${serviceVersion ?? "(unknown version)"} -> ${targetVersion} (${targetChannel}).`
         : alreadyOnDisk
-          ? "Switching T3 Code"
-          : "Updating T3 Code",
+          ? "Switching Codepos"
+          : "Updating Codepos",
     executableCurrent
       ? ""
       : `${currentVersion} → ${targetVersion}${targetChannel === "stable" ? "" : ` (${targetChannel})`}`,
@@ -577,7 +588,7 @@ const runUpdate = Effect.fn("cli.update.run")(function* (input: {
     serviceUpdated = restartService;
   }
 
-  progress.success(`Installed T3 Code ${targetVersion}`);
+  progress.success(`Installed Codepos ${targetVersion}`);
   if (Option.isSome(repointed)) {
     yield* Console.log("  Run t3 to get started.\n");
   } else {

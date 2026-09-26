@@ -62,7 +62,7 @@ export class SqliteStateSharedHomeMutationError extends Schema.TaggedError<Sqlit
   {},
 ) {
   override get message(): string {
-    return "Refusing to mutate the shared ~/.t3 database. Use an isolated --base-dir.";
+    return "Refusing to mutate a shared T3 Code or Codepos database. Use an isolated --base-dir.";
   }
 }
 
@@ -125,6 +125,7 @@ export interface RunSqliteStateInput {
 
 export interface RunSqliteStateOptions {
   readonly sharedHome?: string | undefined;
+  readonly codeposHome?: string | undefined;
 }
 
 const resolveSqlSource = Effect.fn("resolveSqliteStateSqlSource")(function* (
@@ -182,6 +183,7 @@ export const runSqliteState = Effect.fn("runSqliteState")(function* (
   const path = yield* Path.Path;
   const baseDir = path.resolve(input.baseDir);
   const sharedHome = path.resolve(options.sharedHome ?? path.join(NodeOS.homedir(), ".t3"));
+  const codeposHome = path.resolve(options.codeposHome ?? path.join(NodeOS.homedir(), ".codepos"));
   const databasePath = path.join(baseDir, "userdata", "state.sqlite");
   const source = yield* resolveSqlSource(input.sql, input.file);
 
@@ -189,11 +191,12 @@ export const runSqliteState = Effect.fn("runSqliteState")(function* (
     return yield* new SqliteStateDatabaseMissingError({ databasePath });
   }
   if (input.operation === "exec") {
-    const [canonicalBaseDir, canonicalSharedHome] = yield* Effect.all([
+    const [canonicalBaseDir, canonicalSharedHome, canonicalCodeposHome] = yield* Effect.all([
       fs.realPath(baseDir),
       fs.realPath(sharedHome).pipe(Effect.orElseSucceed(() => sharedHome)),
+      fs.realPath(codeposHome).pipe(Effect.orElseSucceed(() => codeposHome)),
     ]);
-    if (canonicalBaseDir === canonicalSharedHome) {
+    if (canonicalBaseDir === canonicalSharedHome || canonicalBaseDir === canonicalCodeposHome) {
       return yield* new SqliteStateSharedHomeMutationError();
     }
   }

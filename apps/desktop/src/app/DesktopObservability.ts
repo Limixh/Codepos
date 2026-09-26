@@ -626,9 +626,9 @@ const telemetryLayer = Layer.unwrap(
     const environment = yield* DesktopEnvironment.DesktopEnvironment;
     const endpoints = yield* resolveOtlpEndpoints;
     const resource = {
-      serviceName: "t3code-desktop",
+      serviceName: "codepos-desktop",
       attributes: {
-        "service.namespace": "t3code",
+        "service.namespace": "codepos",
         "service.runtime": "desktop",
         "service.mode": environment.isDevelopment ? "development" : "packaged",
       },
